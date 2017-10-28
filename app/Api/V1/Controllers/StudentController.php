@@ -43,10 +43,11 @@ class StudentController extends Controller
     public function postToken(Request $req){
         $token = $req->token;
         $stu_id = $req->stu_id;
-        $q=DB::table('rms_mobile_token')->where('stu_id',$stu_id)->get();
-       // if(count($q) === 0){
-            DB::table('rms_mobile_token')->insert(['token'=>$token,'stu_id'=>$stu_id,'date'=>date('Y-m-d')]);
-       // }
+        $uuid = $req->uuid;
+        $q=DB::table('rms_mobile_token')->where('uuid',$uuid)->get();
+        if(count($q) === 0 && $stu_id !=0){
+            DB::table('rms_mobile_token')->insert(['token'=>$token,'uuid'=>$uuid,'stu_id'=>$stu_id,'date'=>date('Y-m-d')]);
+        }
         return response()->json(['status'=>'ok']);
     }
     public function getScore($stu_id,$group_id,$exam_id){
@@ -137,7 +138,7 @@ class StudentController extends Controller
           `rms_student_attendence_detail` AS satd 
           WHERE sat.`id`= satd.`attendence_id`
           AND satd.`stu_id`='.$stu_id.' AND sat.`group_id`='.$group.' ORDER BY satd.id DESC');
-          return response()->json($sql);
+        return response()->json($sql);
     }
     public function getGroupbyStudent($student_id){
         $q = DB::select('SELECT
