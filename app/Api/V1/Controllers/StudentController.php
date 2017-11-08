@@ -12,7 +12,7 @@ class StudentController extends Controller
 	      FROM rms_tuitionfee AS f WHERE f.id=g.academic_year AND `status`=1 GROUP BY from_academic,to_academic,generation) AS academic_year
  	      ,(SELECT en_name FROM `rms_dept` WHERE (`rms_dept`.`dept_id`=`g`.`degree`) LIMIT 1) AS degree, 
  	      (SELECT major_enname FROM `rms_major` WHERE (`rms_major`.`major_id`=`g`.`grade`) LIMIT 1 )AS grade,
- 	      `g`.`semester` AS `semester`, 
+ 	      `g`.`semester` AS `semester`,
  	      (SELECT `r`.`room_name`	FROM `rms_room` `r` WHERE (`r`.`room_id` = `g`.`room_id`) LIMIT 1) AS `room_name`, 
  	      (SELECT`rms_view`.`name_kh` FROM `rms_view` WHERE ((`rms_view`.`type` = 4) AND (`rms_view`.`key_code` = `g`.`session`)) LIMIT 1) AS `session`, 
  	      (SELECT month_kh FROM rms_month WHERE rms_month.id = s.for_month) AS for_month_ch, s.for_semester,
@@ -238,6 +238,18 @@ class StudentController extends Controller
             AND sdd.`stu_id` = $stu_id
             AND sd.`group_id` = $group_id
         ");
+        return response()->json($q);
+    }
+    public function getHoliday($type){
+        $q=DB::table('rms_holiday')->where('type',$type)->get();
+        return response()->json($q);
+    }
+    public function getCurrentMonth($year,$month,$type){
+        $q=DB::table('rms_holiday')
+            ->whereYear('date',$year)
+            ->whereMonth('date',$month)
+            ->where('type',$type)
+            ->get();
         return response()->json($q);
     }
 }

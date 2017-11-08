@@ -25,12 +25,14 @@ $api->version('v1', function (Router $api) {
         $api->get('article/{limit}/{offset}/{cate_id}','App\\Api\\V1\\Controllers\\StudentController@getArticle');
         $api->get('articleSingle/{id}/{cate_id}','App\\Api\\V1\\Controllers\\StudentController@getSingleArticle');
         $api->get('getLocation','App\\Api\\V1\\Controllers\\StudentController@getLocation');
+        $api->get('getHoliday/{type}','App\\Api\\V1\\Controllers\\StudentController@getHoliday');
         $api->get('getPaymentInvoice/{student_id}','App\\Api\\V1\\Controllers\\StudentController@getPaymentInvoice');
         $api->get('getPaymentDetail/{student_id}/{payment_id}','App\\Api\\V1\\Controllers\\StudentController@getPaymentDetail');
         $api->get('getGroupbyStudent/{student_id}','App\\Api\\V1\\Controllers\\StudentController@getGroupbyStudent');
         $api->get('getStatusAttendence/{student_id}/{group}','App\\Api\\V1\\Controllers\\StudentController@getStatusAttendence');
         $api->get('getAttendanceCountNotification/{student_id}','App\\Api\\V1\\Controllers\\StudentController@getAttendanceCountNotification');
         $api->get('getDiscipline/{student_id}/{group_id}','App\\Api\\V1\\Controllers\\StudentController@getDiscipline');
+        $api->get('getCurrentMonth/{year}/{month}/{type}','App\\Api\\V1\\Controllers\\StudentController@getCurrentMonth');
         $api->post('postToken','App\\Api\\V1\\Controllers\\StudentController@postToken');
     });
     $api->group(['middleware' => 'jwt.auth'], function(Router $api) {
