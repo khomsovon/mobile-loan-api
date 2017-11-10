@@ -23,6 +23,79 @@ class StudentController extends Controller
         );
         return response()->json($q);
     }
+    public function getMasterScore($stu_id){
+        $q = DB::select("SELECT s.`id`, s.`group_id`, g.`group_code`,title_score,s.for_month,s.for_semester,s.note,sd.`student_id`,`g`.`degree` AS degree_id,
+        (SELECT CONCAT(from_academic,'-',to_academic,'(',generation,')') 
+        FROM rms_tuitionfee AS f WHERE f.id=g.academic_year AND `status`=1 GROUP BY from_academic,to_academic,generation) AS academic_year
+        ,(SELECT en_name FROM `rms_dept` WHERE (`rms_dept`.`dept_id`=`g`.`degree`) LIMIT 1) AS degree, 
+        (SELECT major_enname FROM `rms_major` WHERE (`rms_major`.`major_id`=`g`.`grade`) LIMIT 1 )AS grade,
+      `g`.`semester` AS `semester`, 
+        (SELECT `r`.`room_name` FROM `rms_room` `r` WHERE (`r`.`room_id` = `g`.`room_id`) LIMIT 1) AS `room_name`, 
+        (SELECT`rms_view`.`name_kh` FROM `rms_view` WHERE ((`rms_view`.`type` = 4) AND (`rms_view`.`key_code` = `g`.`session`)) LIMIT 1) AS `session`, (SELECT month_kh FROM rms_month WHERE rms_month.id = s.for_month) AS for_month, s.for_semester,
+       s.reportdate 
+       FROM `rms_score` AS s, 
+       `rms_score_detail` AS sd,
+       `rms_group` AS g 
+        WHERE  
+        s.id= sd.`score_id`
+        AND sd.`student_id`=$stu_id
+        AND g.`id`=s.`group_id` AND s.status = 1 AND s.type_score=1 GROUP BY s.id");
+        return response()->json($q);
+    }
+    public function getScoreDetail($score_id,$degree_id,$student_id){
+        $q = DB::select("SELECT 
+        sd.score_id,
+        sd.subject_id,
+        (SELECT subject_titlekh FROM `rms_subject` AS sj WHERE sj.id=sd.subject_id LIMIT 1) AS subject_name,
+        sd.score 
+        FROM `rms_score` AS s,
+        `rms_score_detail` AS sd
+        WHERE 
+        s.id=sd.score_id
+        AND sd.status=1
+        AND sd.is_parent=1
+        AND sd.student_id=4
+        AND score_id=$score_id");
+        $average=DB::select("SELECT pass_average FROM `rms_dept` WHERE dept_id=$degree_id LIMIT 1");
+        DB::statement(DB::raw('SET @rnk=0'));
+        DB::statement(DB::raw('SET @rank=0'));
+        DB::statement(DB::raw('SET @curscore=0'));
+        $rank=DB::select("
+             SELECT score,student_id,rank FROM
+                (
+                    SELECT AA.*,BB.student_id,
+                    (@rnk:=@rnk+1) rnk,
+                    (@rank:=IF(@curscore=score,@rank,@rnk)) rank,
+                    (@curscore:=score) newscore
+                    FROM
+                    (
+                        SELECT * FROM
+                        (SELECT COUNT(1) scorecount,score
+                         FROM (
+                            SELECT SUM(score) AS score,
+                            score_id,
+                            group_id,
+                            student_id 
+                            FROM `rms_score_detail` 
+                            WHERE score_id=1 
+                            GROUP BY student_id) AS ST 
+                          WHERE score_id=$score_id  
+                          GROUP BY score
+                    ) AAA
+                     ORDER BY score DESC
+                 ) AA LEFT JOIN (SELECT SUM(score) AS score,
+                                  score_id,
+                                  group_id,
+                                  student_id 
+                                  FROM `rms_score_detail` 
+                                  WHERE score_id=1 
+                                  GROUP BY student_id) BB 
+                                USING (score) 
+                                WHERE score_id=$score_id 
+            ) A WHERE student_id=$student_id
+        ");
+        return response()->json(['score'=>$q,'average'=>$average,'rank'=>$rank]);
+    }
     public function getExam($stu_id,$group_id){
         $q=DB::select("SELECT score_t.*,rsu.`stu_enname` FROM (SELECT s.`id`, s.`group_id`,g.`group_code`,title_score,s.for_month,s.note,
    		  (SELECT CONCAT(from_academic,'-',to_academic,'(',generation,')') 
