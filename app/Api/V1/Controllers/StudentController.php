@@ -61,7 +61,14 @@ class StudentController extends Controller
         DB::statement(DB::raw('SET @rank=0'));
         DB::statement(DB::raw('SET @curscore=0'));
         $rank=DB::select("
-             SELECT score,student_id,rank FROM
+              SELECT score,student_id,(score/average) AS average,rank 
+              FROM 
+              (SELECT score,student_id,(
+                  SELECT COUNT(1) AS sum_score 
+                  FROM rms_score_detail 
+                  WHERE student_id=$student_id 
+                  AND score_id=$score_id) average,rank 
+               FROM
                 (
                     SELECT AA.*,BB.student_id,
                     (@rnk:=@rnk+1) rnk,
@@ -77,7 +84,7 @@ class StudentController extends Controller
                             group_id,
                             student_id 
                             FROM `rms_score_detail` 
-                            WHERE score_id=1 
+                            WHERE score_id=$score_id 
                             GROUP BY student_id) AS ST 
                           WHERE score_id=$score_id  
                           GROUP BY score
@@ -88,11 +95,12 @@ class StudentController extends Controller
                                   group_id,
                                   student_id 
                                   FROM `rms_score_detail` 
-                                  WHERE score_id=1 
-                                  GROUP BY student_id) BB 
+                                  WHERE score_id=$score_id 
+                                  GROUP BY student_id ORDER BY score DESC) BB 
                                 USING (score) 
-                                WHERE score_id=$score_id 
+                                WHERE score_id=$score_id
             ) A WHERE student_id=$student_id
+            ) AS A1
         ");
         return response()->json(['score'=>$q,'average'=>$average,'rank'=>$rank]);
     }
