@@ -125,9 +125,9 @@ class StudentController extends Controller
         $token = $req->token;
         $stu_id = $req->stu_id;
         $uuid = $req->uuid;
-        $q=DB::table('rms_mobile_token')->where('uuid',$uuid)->get();
+        $q=DB::table('mobile_mobile_token')->where('uuid',$uuid)->get();
         if(count($q) === 0 && $stu_id !=0){
-            DB::table('rms_mobile_token')->insert(['token'=>$token,'uuid'=>$uuid,'stu_id'=>$stu_id,'date'=>date('Y-m-d')]);
+            DB::table('mobile_mobile_token')->insert(['token'=>$token,'uuid'=>$uuid,'stu_id'=>$stu_id,'date'=>date('Y-m-d')]);
         }
         return response()->json(['status'=>'ok']);
     }
@@ -156,7 +156,7 @@ class StudentController extends Controller
         return response()->json($q);
     }
     public function getConfig($key){
-        $q = DB::table('rms_appdata')->where('key','=',$key)->first();
+        $q = DB::table('mobile_appdata')->where('key','=',$key)->first();
         if(count($q)>0){
             return response()->json($q);
         }else{
@@ -164,15 +164,15 @@ class StudentController extends Controller
         }
     }
     public function getArticle($limit,$offset,$cate_id){
-        $q = DB::table('rms_article')->where('category_id','=',$cate_id)->skip($offset)->limit($limit)->orderBy('id','desc')->get();
+        $q = DB::table('mobile_article')->where('category_id','=',$cate_id)->skip($offset)->limit($limit)->orderBy('id','desc')->get();
         return response()->json($q);
     }
     public function getSingleArticle($id,$cate_id){
-        $q = DB::table('rms_article')->where('id','=',$id)->where('category_id','=',$cate_id)->first();
+        $q = DB::table('mobile_article')->where('id','=',$id)->where('category_id','=',$cate_id)->first();
         return response()->json($q);
     }
     public function getLocation(){
-        $q = DB::table('rms_location')->get();
+        $q = DB::table('mobile_location')->get();
         return response()->json($q);
     }
     public function getPaymentInvoice($student_id){
@@ -322,11 +322,11 @@ class StudentController extends Controller
         return response()->json($q);
     }
     public function getHoliday($type){
-        $q=DB::table('rms_holiday')->where('type',$type)->get();
+        $q=DB::table('mobile_holiday')->where('type',$type)->get();
         return response()->json($q);
     }
     public function getCurrentMonth($year,$month,$type){
-        $q=DB::table('rms_holiday')
+        $q=DB::table('mobile_holiday')
             ->whereYear('date',$year)
             ->whereMonth('date',$month)
             ->where('type',$type)
