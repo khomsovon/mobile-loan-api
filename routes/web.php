@@ -29,7 +29,7 @@ $api->version('v1', function (Router $api) {
         $api->get('getPaymentInvoice/{student_id}','App\\Api\\V1\\Controllers\\StudentController@getPaymentInvoice');
         $api->get('getPaymentDetail/{student_id}/{payment_id}','App\\Api\\V1\\Controllers\\StudentController@getPaymentDetail');
         $api->get('getGroupbyStudent/{student_id}','App\\Api\\V1\\Controllers\\StudentController@getGroupbyStudent');
-        $api->get('getScoreDetail/{score_id}/{degree_id}/{student_id}','App\\Api\\V1\\Controllers\\StudentController@getScoreDetail');
+        $api->get('getScoreDetail/{score_id}/{degree_id}/{student_id}/{exam_type}/{for_semester}/{group_id}','App\\Api\\V1\\Controllers\\StudentController@getScoreDetail');
         $api->get('getMasterScore/{student_id}','App\\Api\\V1\\Controllers\\StudentController@getMasterScore');
         $api->get('getStatusAttendence/{student_id}/{group}','App\\Api\\V1\\Controllers\\StudentController@getStatusAttendence');
         $api->get('getAttendanceCountNotification/{student_id}','App\\Api\\V1\\Controllers\\StudentController@getAttendanceCountNotification');

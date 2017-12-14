@@ -24,7 +24,7 @@ class StudentController extends Controller
         return response()->json($q);
     }
     public function getMasterScore($stu_id){
-        $q = DB::select("SELECT s.`id`, s.`group_id`, g.`group_code`,title_score,s.for_month,s.for_semester,s.note,sd.`student_id`,`g`.`degree` AS degree_id,
+        $q = DB::select("SELECT s.`id`, s.`group_id`,s.exam_type, g.`group_code`,title_score,s.for_month,s.for_semester,s.note,sd.`student_id`,`g`.`degree` AS degree_id,
         (SELECT CONCAT(from_academic,'-',to_academic,'(',generation,')') 
         FROM rms_tuitionfee AS f WHERE f.id=g.academic_year AND `status`=1 GROUP BY from_academic,to_academic,generation) AS academic_year
         ,(SELECT en_name FROM `rms_dept` WHERE (`rms_dept`.`dept_id`=`g`.`degree`) LIMIT 1) AS degree, 
@@ -42,11 +42,12 @@ class StudentController extends Controller
         AND g.`id`=s.`group_id` AND s.status = 1 AND s.type_score=1 GROUP BY s.id");
         return response()->json($q);
     }
-    public function getScoreDetail($score_id,$degree_id,$student_id){
+    public function getScoreDetail($score_id,$degree_id,$student_id,$exam_type,$for_semester,$group_id){
         $q = DB::select("SELECT 
         sd.score_id,
         sd.subject_id,
         (SELECT subject_titlekh FROM `rms_subject` AS sj WHERE sj.id=sd.subject_id LIMIT 1) AS subject_name,
+        (SELECT d.max_average FROM rms_dept AS d,rms_group AS g WHERE d.dept_id=g.degree AND g.id=s.group_id) AS max_score,
         sd.score 
         FROM `rms_score` AS s,
         `rms_score_detail` AS sd
@@ -102,7 +103,169 @@ class StudentController extends Controller
             ) A WHERE student_id=$student_id
             ) AS A1
         ");
-        return response()->json(['score'=>$q,'average'=>$average,'rank'=>$rank]);
+        $semester=DB::select("SELECT
+          s.`id`,
+          sd.`group_id`,
+          g.`group_code`,
+          s.for_semester,
+          (SELECT AVG(sdd.score) FROM rms_score_detail AS sdd,rms_score as sc
+          WHERE
+            sc.id=sdd.score_id
+            AND sc.group_id=$group_id
+            AND sc.for_semester =$for_semester
+            AND sc.exam_type=$exam_type
+            AND sdd.`is_parent`=1
+            AND sdd.student_id = sd.student_id
+          GROUP BY sdd.student_id LIMIT 1) AS avg_exam,
+          (SELECT avg(average)
+           FROM (SELECT
+                   AVG(sdd.score) as average,sdd.student_id
+                 FROM `rms_score` AS s,
+                   `rms_score_detail` AS sdd
+                 WHERE
+                   s.id=sdd.score_id
+                   AND sdd.status=1
+                   AND sdd.is_parent=1
+                   AND s.exam_type=1
+                   AND s.for_semester=$for_semester
+                   AND s.group_id=$group_id
+                 GROUP BY sdd.student_id) AS A_MONTT WHERE A_MONTT.student_id=sd.student_id LIMIT 1) AS avg_month,
+          (SELECT COUNT(ss.id) FROM `rms_score` AS ss WHERE ss.group_id=$group_id AND ss.exam_type=1 AND for_semester =$for_semester ) AS amount_month
+        FROM `rms_score` AS s,
+          `rms_score_detail` AS sd,
+          `rms_student` AS st,
+          `rms_group` AS g
+        WHERE
+          s.`id`=sd.`score_id`
+          AND st.`stu_id`=$student_id
+          AND g.`id`=s.`group_id`
+          AND sd.`is_parent`=1
+          AND s.status = 1
+          AND s.type_score=1
+          AND g.id= $group_id
+          AND s.for_semester=$for_semester
+          AND s.exam_type=$exam_type
+        GROUP BY s.id");
+        DB::statement(DB::raw('SET @rnk_=0'));
+        DB::statement(DB::raw('SET @rank_=0'));
+        DB::statement(DB::raw('SET @curscore_=0'));
+        $sem_rank=DB::select("
+            SELECT score,student_id,rank
+            FROM
+              (SELECT score,student_id,rank
+               FROM
+                 (
+                   SELECT AA.*,BB.student_id,
+                     (@rnk_:=@rnk_+1) rnk_,
+                     (@rank:=IF(@curscore=score,@rank_,@rnk_)) rank,
+                     (@curscore:=score) newscore
+                   FROM
+                     (
+                       SELECT * FROM
+                         (SELECT COUNT(1) scorecount,score
+                          FROM (
+                                 SELECT id AS score_id,(avg_exam + avg_month) AS score,student_id,group_id FROM (
+                                    SELECT
+                                      s.`id`,sd.student_id,s.group_id,
+                                      (SELECT AVG(sdd.score)
+                                       FROM rms_score_detail AS sdd, rms_score AS sc
+                                       WHERE
+                                         sc.id = sdd.score_id
+                                         AND sc.group_id = $group_id
+                                         AND sc.for_semester = $for_semester
+                                         AND sc.exam_type = $exam_type
+                                         AND sdd.`is_parent` = 1
+                                         AND sdd.student_id = sd.student_id
+                                       GROUP BY sdd.student_id
+                                       LIMIT 1) AS avg_exam,
+                                      (SELECT avg(average)
+                                       FROM (SELECT
+                                               AVG(sdd.score) AS average,
+                                               sdd.student_id
+                                             FROM `rms_score` AS s,
+                                               `rms_score_detail` AS sdd
+                                             WHERE
+                                               s.id = sdd.score_id
+                                               AND sdd.status = 1
+                                               AND sdd.is_parent = 1
+                                               AND s.exam_type = 1
+                                               AND s.for_semester = $for_semester
+                                               AND s.group_id = $group_id
+                                             GROUP BY sdd.student_id) AS A_MONTT
+                                       WHERE A_MONTT.student_id = sd.student_id
+                                       LIMIT 1) AS avg_month
+                                    FROM `rms_score` AS s,
+                                      `rms_score_detail` AS sd,
+                                      `rms_student` AS st,
+                                      `rms_group` AS g
+                                    WHERE
+                                      s.`id` = sd.`score_id`
+                                      AND g.`id` = s.`group_id`
+                                      AND sd.`is_parent` = 1
+                                      AND s.status = 1
+                                      AND s.type_score = 1
+                                      AND g.id = $group_id
+                                      AND s.for_semester = $for_semester
+                                      AND s.exam_type = $exam_type
+                                    GROUP BY sd.student_id
+                                  ) AS TTT GROUP BY student_id
+                               ) AS ST
+                          WHERE score_id=$score_id
+                          GROUP BY score
+                         ) AAA
+                       ORDER BY score DESC
+                     ) AA LEFT JOIN (
+                     SELECT id,(avg_exam + avg_month) AS score,student_id,group_id FROM (
+                        SELECT
+                          s.`id`,sd.student_id,s.group_id,
+                          (SELECT AVG(sdd.score)
+                           FROM rms_score_detail AS sdd, rms_score AS sc
+                           WHERE
+                             sc.id = sdd.score_id
+                             AND sc.group_id = $group_id
+                             AND sc.for_semester = $for_semester
+                             AND sc.exam_type = $exam_type
+                             AND sdd.`is_parent` = 1
+                             AND sdd.student_id = sd.student_id
+                           GROUP BY sdd.student_id
+                           LIMIT 1) AS avg_exam,
+                          (SELECT avg(average)
+                           FROM (SELECT
+                                   AVG(sdd.score) AS average,
+                                   sdd.student_id
+                                 FROM `rms_score` AS s,
+                                   `rms_score_detail` AS sdd
+                                 WHERE
+                                   s.id = sdd.score_id
+                                   AND sdd.status = 1
+                                   AND sdd.is_parent = 1
+                                   AND s.exam_type = 1
+                                   AND s.for_semester = $for_semester
+                                   AND s.group_id = $group_id
+                                 GROUP BY sdd.student_id) AS A_MONTT
+                           WHERE A_MONTT.student_id = sd.student_id
+                           LIMIT 1) AS avg_month
+                        FROM `rms_score` AS s,
+                          `rms_score_detail` AS sd,
+                          `rms_student` AS st,
+                          `rms_group` AS g
+                        WHERE
+                          s.`id` = sd.`score_id`
+                          AND g.`id` = s.`group_id`
+                          AND sd.`is_parent` = 1
+                          AND s.status = 1
+                          AND s.type_score = 1
+                          AND g.id = $group_id
+                          AND s.for_semester = $for_semester
+                          AND s.exam_type = $exam_type
+                        GROUP BY sd.student_id
+                      ) AS TTT GROUP BY student_id ORDER BY score DESC
+                     ) BB
+                     USING (score)
+                 ) A WHERE student_id=$student_id
+              ) AS A1;
+        ");
+        return response()->json(['score'=>$q,'average'=>$average,'rank'=>$rank,'semester'=>$semester,'sem_rank'=>$sem_rank]);
     }
     public function getExam($stu_id,$group_id){
         $q=DB::select("SELECT score_t.*,rsu.`stu_enname` FROM (SELECT s.`id`, s.`group_id`,g.`group_code`,title_score,s.for_month,s.note,
@@ -128,6 +291,8 @@ class StudentController extends Controller
         $q=DB::table('mobile_mobile_token')->where('uuid',$uuid)->get();
         if(count($q) === 0 && $stu_id !=0){
             DB::table('mobile_mobile_token')->insert(['token'=>$token,'uuid'=>$uuid,'stu_id'=>$stu_id,'date'=>date('Y-m-d')]);
+        }else{
+            DB::table('mobile_mobile_token')->where('uuid',$uuid)->where('stu_id',$stu_id)->update(['token'=>$token,'date'=>date('Y-m-d')]);
         }
         return response()->json(['status'=>'ok']);
     }
@@ -225,6 +390,8 @@ class StudentController extends Controller
         $q = DB::select('SELECT
             `g`.`id`,
             (SELECT teacher_name_kh FROM `rms_teacher` WHERE `rms_teacher`.id=g.teacher_id) AS teacher_name,
+            (SELECT tel FROM `rms_teacher` WHERE `rms_teacher`.id=g.teacher_id) AS teacher_phone,
+            (SELECT teacher_name_kh FROM `rms_teacher` WHERE `rms_teacher`.id=g.teacher_assistance) AS teacher_assistance,
             `g`.`group_code`    AS `group_code`,
             (SELECT CONCAT(from_academic," - ",to_academic,"(",generation,")") FROM rms_tuitionfee WHERE rms_tuitionfee.id=g.academic_year LIMIT 1) AS academic,
             `g`.`semester` AS `semester`,

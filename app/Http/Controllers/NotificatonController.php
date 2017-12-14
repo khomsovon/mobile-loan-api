@@ -19,17 +19,21 @@ class NotificatonController extends Controller
 
         $notificationBuilder = new PayloadNotificationBuilder($req->title);
         $notificationBuilder->setBody($req->message)
+            ->setBadge(1)
             ->setSound('default');
-
+        $mydata=[
+            'title'=>$req->title,
+            'body'=>$req->message
+        ];
         $dataBuilder = new PayloadDataBuilder();
-        $dataBuilder->addData(['a_data' => ['id'=>1]]);
+        $dataBuilder->addData(['data' => $mydata]);
 
         $option = $optionBuilder->build();
         $notification = $notificationBuilder->build();
         $data = $dataBuilder->build();
 
         // You must change it to get your tokens
-        $tokens = DB::table('rms_mobile_token')->pluck('token')->toArray();
+        $tokens = DB::table('mobile_mobile_token')->pluck('token')->toArray();
 
         $downstreamResponse = FCM::sendTo($tokens, $option, $notification, $data);
 
@@ -57,15 +61,19 @@ class NotificatonController extends Controller
         $notificationBuilder = new PayloadNotificationBuilder($title);
         $notificationBuilder->setBody($message)
             ->setSound('default');
-
+        $mydata=[
+          'title'=>$title,
+          'body'=>$message,
+          'student_id'=>$stu_id
+        ];
         $dataBuilder = new PayloadDataBuilder();
-        $dataBuilder->addData(['a_data' => 'my_data']);
+        $dataBuilder->addData(['data' => $mydata]);
 
         $option = $optionBuilder->build();
         $notification = $notificationBuilder->build();
         $data = $dataBuilder->build();
 
-        $token = DB::table('rms_mobile_token')->where('stu_id',$stu_id)->first();
+        $token = DB::table('mobile_mobile_token')->where('stu_id',$stu_id)->first();
         $token = count($token) > 0 ? $token->token : '';
         $downstreamResponse = FCM::sendTo($token, $option, $notification, $data);
 
