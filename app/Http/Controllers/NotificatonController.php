@@ -23,7 +23,8 @@ class NotificatonController extends Controller
             ->setSound('default');
         $mydata=[
             'title'=>$req->title,
-            'body'=>$req->message
+            'body'=>$req->message,
+            'type'=>2
         ];
         $dataBuilder = new PayloadDataBuilder();
         $dataBuilder->addData(['data' => $mydata]);

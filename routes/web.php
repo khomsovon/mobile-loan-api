@@ -36,6 +36,8 @@ $api->version('v1', function (Router $api) {
         $api->get('getDiscipline/{student_id}/{group_id}','App\\Api\\V1\\Controllers\\StudentController@getDiscipline');
         $api->get('getCurrentMonth/{year}/{month}/{type}','App\\Api\\V1\\Controllers\\StudentController@getCurrentMonth');
         $api->post('postToken','App\\Api\\V1\\Controllers\\StudentController@postToken');
+        $api->post('postMessage','App\\Api\\V1\\Controllers\\StudentController@postMessage');
+        $api->get('getMessage/{limit}/{offset}/{stu_id}','App\\Api\\V1\\Controllers\\StudentController@getMessage');
     });
     $api->group(['middleware' => 'jwt.auth'], function(Router $api) {
         $api->get('protected', function() {
