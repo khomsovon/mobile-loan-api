@@ -50,10 +50,8 @@ class NotificatonController extends Controller
 
 //return Array - you should try to resend the message to the tokens in the array
         $downstreamResponse->tokensToRetry();
-
 // return Array (key:token, value:errror) - in production you should remove from your database the tokens present in this array
         $downstreamResponse->tokensWithError();
-
     }
     public function postSinglePushNotification($stu_id,$title,$message){
         $optionBuilder = new OptionsBuilder();

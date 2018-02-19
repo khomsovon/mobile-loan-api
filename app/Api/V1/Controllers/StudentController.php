@@ -349,9 +349,29 @@ class StudentController extends Controller
         $q = DB::table('mobile_article')->where('category_id','=',$cate_id)->skip($offset)->limit($limit)->orderBy('id','desc')->get();
         return response()->json($q);
     }
-    public function getSingleArticle($id,$cate_id){
-        $q = DB::table('mobile_article')->where('id','=',$id)->where('category_id','=',$cate_id)->first();
+    public function getAbout($limit,$offset,$cate_id){
+        $q = DB::table('mobile_about')->where('active','=',1)->skip($offset)->limit($limit)->orderBy('id','desc')->get();
         return response()->json($q);
+    }
+    public function getNews($limit,$offset,$cate_id){
+        $q = DB::table('mobile_news_event')->where('active','=',1)->skip($offset)->limit($limit)->orderBy('id','desc')->get();
+        return response()->json($q);
+    }
+    public function getNoti($limit,$offset,$cate_id){
+        $q = DB::table('mobile_notice')->skip($offset)->limit($limit)->orderBy('id','desc')->get();
+        return response()->json($q);
+    }
+    public function getGranding($limit,$offset,$cate_id){
+        $q = DB::table('mobile_grading_system')->where('active','=',1)->skip($offset)->limit($limit)->orderBy('id','desc')->get();
+        return response()->json($q);
+    }
+    public function getSingleArticle($id,$cate_id){
+          $q = DB::table('mobile_notice')->where('id','=',$id)->first();
+          return response()->json($q);
+    }
+    public function getSingleNews($id,$cate_id){
+          $q = DB::table('mobile_news_event')->where('id','=',$id)->first();
+          return response()->json($q);
     }
     public function getLocation(){
         $q = DB::table('mobile_location')->get();
@@ -394,14 +414,103 @@ class StudentController extends Controller
           AND satd.`stu_id`='.$stu_id.' ORDER BY satd.id DESC');
         return response()->json($sql);
     }
-    function getStatusAttendence($stu_id,$group){
-        $sql= DB::select('SELECT
-          sat.`group_id`,satd.`attendence_status`,sat.`date_attendence`,satd.`description`
-          FROM `rms_student_attendence` AS sat,
-          `rms_student_attendence_detail` AS satd
-          WHERE sat.`id`= satd.`attendence_id`
-          AND satd.`stu_id`='.$stu_id.' AND sat.`group_id`='.$group.' ORDER BY satd.id DESC');
+    function getLabel($key){
+       $q = DB::select("SELECT * FROM moble_label WHERE keyName='$key'");
+       return response()->json($q);
+    }
+    function getStatusAttendence($stu_id,$group,$month){
+          $sql = DB::select("
+            SELECT
+            sd.group_id,
+            sd.type,
+            sdd.attendence_status,
+            sdd.description,
+            sd.date_attendence,
+            sd.for_session,
+            MONTH(sd.date_attendence) AS for_month
+            FROM
+            rms_student_attendence AS sd,
+            rms_student_attendence_detail AS sdd
+            WHERE
+            sd.type=1
+            AND sd.id = sdd.attendence_id
+            AND sdd.stu_id = $stu_id
+            AND sd.group_id = $group
+            AND MONTH(sd.date_attendence) = $month
+          ");
         return response()->json($sql);
+    }
+    public function getGroupWithTotal($student_id){
+      $q = DB::select("
+      SELECT T1.*,
+        (SELECT COUNT(*) FROM (SELECT
+               sd.group_id,sdd.attendence_status,sd.type
+                FROM
+                rms_student_attendence AS sd,
+                rms_student_attendence_detail AS sdd
+                WHERE
+                (sd.type=2 OR sdd.attendence_status IN (4,5))
+                AND sd.id = sdd.attendence_id
+                AND sdd.stu_id = $student_id
+        ) AS TS WHERE type=1 OR attendence_status = 1 AND T1.id = TS.group_id) AS small_mistake,
+        (SELECT
+        COUNT(*)
+        FROM
+        rms_student_attendence AS sd,
+        rms_student_attendence_detail AS sdd
+        WHERE
+        (sd.type=2 OR sdd.attendence_status IN (4,5))
+        AND sd.id = sdd.attendence_id
+        AND sdd.stu_id = $student_id AND sdd.attendence_status = 2 AND sd.type!=1 AND T1.id = sd.group_id) AS medium_mistake,
+        (SELECT
+        COUNT(*)
+        FROM
+        rms_student_attendence AS sd,
+        rms_student_attendence_detail AS sdd
+        WHERE
+        (sd.type=2 OR sdd.attendence_status IN (4,5))
+        AND sd.id = sdd.attendence_id
+        AND sdd.stu_id = $student_id AND sdd.attendence_status = 3 AND sd.type!=1 AND T1.id = sd.group_id) AS big_mistake
+        FROM(
+        SELECT
+                  `g`.`id`,
+                  (SELECT teacher_name_kh FROM `rms_teacher` WHERE `rms_teacher`.id=g.teacher_id) AS teacher_name,
+                  (SELECT tel FROM `rms_teacher` WHERE `rms_teacher`.id=g.teacher_id) AS teacher_phone,
+                  (SELECT teacher_name_kh FROM `rms_teacher` WHERE `rms_teacher`.id=g.teacher_assistance) AS teacher_assistance,
+                  `g`.`group_code`    AS `group_code`,
+                  (SELECT CONCAT(from_academic,'-',to_academic,'(',generation,')') FROM rms_tuitionfee WHERE rms_tuitionfee.id=g.academic_year LIMIT 1) AS academic,
+                  `g`.`semester` AS `semester`,
+                  (SELECT en_name
+                  FROM `rms_dept`
+                  WHERE (`rms_dept`.`dept_id`=`g`.`degree`) LIMIT 1) AS degree,
+                  (SELECT major_enname
+                  FROM `rms_major`
+                  WHERE (`rms_major`.`major_id`=`g`.`grade`) LIMIT 1) AS grade,
+                  (SELECT `rms_view`.`name_en`
+                  FROM `rms_view`
+                  WHERE ((`rms_view`.`type` = 4)
+                  AND (`rms_view`.`key_code` = `g`.`session`))
+                  LIMIT 1) AS `session`,
+                  (SELECT
+                  `r`.`room_name`
+                  FROM `rms_room` `r`
+                  WHERE (`r`.`room_id` = `g`.`room_id`)LIMIT 1) AS `room_name`,
+                  g.amount_month,
+                  `g`.`start_date`,
+                  `g`.`expired_date`,
+                  `g`.`note`,
+                  (SELECT
+                  `rms_view`.`name_en`
+                  FROM `rms_view`
+                  WHERE `rms_view`.`type` = 9
+                  AND `rms_view`.`key_code` = `g`.`is_pass`
+                  LIMIT 1) AS `status`,
+                  (SELECT COUNT(`stu_id`) FROM `rms_group_detail_student` WHERE `group_id`=`g`.`id` LIMIT 1)AS Num_Student
+                  FROM `rms_group` `g`,`rms_group_detail_student` AS gds
+                  WHERE g.id=gds.`group_id` AND gds.`stu_id`=$student_id
+          ) AS T1
+      ");
+      return response()->json($q);
     }
     public function getGroupbyStudent($student_id){
         $q = DB::select('SELECT
@@ -440,6 +549,134 @@ class StudentController extends Controller
             (SELECT COUNT(`stu_id`) FROM `rms_group_detail_student` WHERE `group_id`=`g`.`id` LIMIT 1)AS Num_Student
             FROM `rms_group` `g`,`rms_group_detail_student` AS gds
             WHERE g.id=gds.`group_id` AND gds.`stu_id`='.$student_id);
+        return response()->json($q);
+    }
+    public function getGroupbyStudentAtt($student_id,$group_id){
+        $q = DB::select('SELECT
+            `g`.`id`,
+            (SELECT teacher_name_kh FROM `rms_teacher` WHERE `rms_teacher`.id=g.teacher_id) AS teacher_name,
+            (SELECT tel FROM `rms_teacher` WHERE `rms_teacher`.id=g.teacher_id) AS teacher_phone,
+            (SELECT teacher_name_kh FROM `rms_teacher` WHERE `rms_teacher`.id=g.teacher_assistance) AS teacher_assistance,
+            `g`.`group_code`    AS `group_code`,
+            (SELECT CONCAT(from_academic," - ",to_academic,"(",generation,")") FROM rms_tuitionfee WHERE rms_tuitionfee.id=g.academic_year LIMIT 1) AS academic,
+            `g`.`semester` AS `semester`,
+            (SELECT en_name
+            FROM `rms_dept`
+            WHERE (`rms_dept`.`dept_id`=`g`.`degree`) LIMIT 1) AS degree,
+            (SELECT major_enname
+            FROM `rms_major`
+            WHERE (`rms_major`.`major_id`=`g`.`grade`) LIMIT 1) AS grade,
+            (SELECT `rms_view`.`name_en`
+            FROM `rms_view`
+            WHERE ((`rms_view`.`type` = 4)
+            AND (`rms_view`.`key_code` = `g`.`session`))
+            LIMIT 1) AS `session`,
+            (SELECT
+            `r`.`room_name`
+            FROM `rms_room` `r`
+            WHERE (`r`.`room_id` = `g`.`room_id`)LIMIT 1) AS `room_name`,
+            g.amount_month,
+            `g`.`start_date`,
+            `g`.`expired_date`,
+            `g`.`note`,
+            (SELECT
+            `rms_view`.`name_en`
+            FROM `rms_view`
+            WHERE `rms_view`.`type` = 9
+            AND `rms_view`.`key_code` = `g`.`is_pass`
+            LIMIT 1) AS `status`,
+            (SELECT COUNT(`stu_id`) FROM `rms_group_detail_student` WHERE `group_id`=`g`.`id` LIMIT 1)AS Num_Student
+            FROM `rms_group` `g`,`rms_group_detail_student` AS gds
+            WHERE g.id=gds.`group_id` AND gds.`stu_id`='.$student_id.' AND g.id='.$group_id);
+          $qr = DB::select("
+            SELECT MONTHNAME(a.date_attendence) AS for_month,
+            COUNT(attendence_status) AS amount_att,
+            MONTH(a.date_attendence) AS month_number,
+            attendence_status,a.group_id
+            FROM rms_student_attendence AS a,
+            `rms_student_attendence_detail`AS ad
+            WHERE
+            a.type=1
+            AND a.status=1
+            AND a.id=ad.attendence_id
+            AND ad.stu_id = $student_id
+            AND a.group_id=$group_id
+            GROUP BY YEAR(a.date_attendence),
+            MONTH(a.date_attendence) ORDER BY MONTH(a.date_attendence)
+          ");
+          $qrs = DB::select("
+            SELECT MONTHNAME(a.date_attendence) AS for_month,
+            COUNT(attendence_status) AS amount_att,
+            MONTH(a.date_attendence) AS month_number,
+            attendence_status,a.group_id
+            FROM rms_student_attendence AS a,
+            `rms_student_attendence_detail`AS ad
+            WHERE
+            a.type=1
+            AND a.status=1
+            AND a.id=ad.attendence_id
+            AND ad.stu_id = $student_id
+            AND a.group_id=$group_id
+            AND attendence_status!=1
+            GROUP BY YEAR(a.date_attendence),
+            MONTH(a.date_attendence),attendence_status
+          ");
+        return response()->json(['group'=>$q,'month'=>$qr,'a_total'=>$qrs]);
+    }
+    public function getAttByMonth($group_id,$student_id){
+      $q = DB::select("
+        SELECT MONTHNAME(a.date_attendence) AS for_month,
+        COUNT(attendence_status) AS amount_att,
+        MONTH(a.date_attendence) AS month_number,
+        attendence_status
+        FROM rms_student_attendence AS a,
+        `rms_student_attendence_detail`AS ad
+        WHERE
+        a.type=1
+        AND a.status=1
+        AND a.id=ad.attendence_id
+        AND ad.stu_id = $student_id
+        AND a.group_id=$group_id
+        GROUP BY YEAR(a.date_attendence),
+        MONTH(a.date_attendence),
+        ad.attendence_status
+      ");
+      return response()->json($q);
+    }
+    public function getSchedule($group_id){
+        $q = DB::select("
+          SELECT
+            gr.group_id,
+          (SELECT CONCAT(rms_tuitionfee.from_academic,'-',rms_tuitionfee.to_academic,'(',rms_tuitionfee.generation,')')
+           FROM rms_tuitionfee WHERE rms_tuitionfee.status=1 AND rms_tuitionfee.is_finished=0 AND rms_tuitionfee.id=gr.year_id LIMIT 1) AS years,
+          (SELECT group_code FROM rms_group WHERE rms_group.id=gr.group_id LIMIT 1) AS group_code,
+          (SELECT name_en FROM rms_view WHERE rms_view.key_code=gr.day_id AND rms_view.type=18 LIMIT 1)AS days,gr.day_id,
+          gr.from_hour,gr.to_hour,(SELECT rms_group.session FROM rms_group WHERE rms_group.id=gr.group_id LIMIT 1)AS session_id,
+          (SELECT v.name_en FROM rms_view AS v WHERE v.key_code=(SELECT rms_group.session FROM rms_group WHERE rms_group.id=gr.group_id LIMIT 1) AND v.type=4 LIMIT 1)AS session,
+          (SELECT subject_titlekh FROM rms_subject WHERE is_parent=1 AND rms_subject.id = gr.subject_id AND subject_titlekh!='' LIMIT 1) AS subject_name,
+          (SELECT teacher_name_kh FROM rms_teacher WHERE rms_teacher.id=gr.techer_id AND teacher_name_kh!='' LIMIT 1) AS teacher_name
+          FROM
+            rms_group_reschedule AS gr
+          WHERE gr.status=1 and gr.group_id=$group_id GROUP BY gr.day_id ORDER BY gr.day_id ASC
+        ");
+        return response()->json($q);
+    }
+    public function getScheduleDetail($group_id,$day_id){
+        $q = DB::select("
+          SELECT
+            gr.group_id,
+          (SELECT CONCAT(rms_tuitionfee.from_academic,'-',rms_tuitionfee.to_academic,'(',rms_tuitionfee.generation,')')
+           FROM rms_tuitionfee WHERE rms_tuitionfee.status=1 AND rms_tuitionfee.is_finished=0 AND rms_tuitionfee.id=gr.year_id LIMIT 1) AS years,
+          (SELECT group_code FROM rms_group WHERE rms_group.id=gr.group_id LIMIT 1) AS group_code,
+          (SELECT name_en FROM rms_view WHERE rms_view.key_code=gr.day_id AND rms_view.type=18 LIMIT 1)AS days,gr.day_id,
+          gr.from_hour,gr.to_hour,(SELECT rms_group.session FROM rms_group WHERE rms_group.id=gr.group_id LIMIT 1)AS session_id,
+          (SELECT v.name_en FROM rms_view AS v WHERE v.key_code=(SELECT rms_group.session FROM rms_group WHERE rms_group.id=gr.group_id LIMIT 1) AND v.type=4 LIMIT 1)AS session,
+          (SELECT subject_titlekh FROM rms_subject WHERE is_parent=1 AND rms_subject.id = gr.subject_id AND subject_titlekh!='' LIMIT 1) AS subject_name,
+          (SELECT teacher_name_kh FROM rms_teacher WHERE rms_teacher.id=gr.techer_id AND teacher_name_kh!='' LIMIT 1) AS teacher_name
+          FROM
+            rms_group_reschedule AS gr
+          WHERE gr.status=1 and gr.group_id=$group_id AND gr.day_id=$day_id ORDER BY gr.from_hour ASC
+        ");
         return response()->json($q);
     }
     public function getPaymentDetail($student_id,$payment_id){
@@ -490,30 +727,32 @@ class StudentController extends Controller
     }
     public function getDiscipline($stu_id,$group_id){
         $q = DB::select("
-            SELECT
-            sd.`group_id`,
-            sdd.`mistake_type`,
-            sdd.description,
-            sd.`mistake_date`
-           FROM
-            `rms_student_discipline` AS sd,
-            `rms_student_discipline_detail` AS sdd
-           WHERE
-            sd.`id` = sdd.`discipline_id`
-            AND sdd.`stu_id` = $stu_id
-            AND sd.`group_id` = $group_id
+          SELECT
+          sd.group_id,
+          sd.type,
+          sdd.attendence_status as mistake_type,
+          sdd.description,
+          sd.date_attendence as mistake_date,
+          sd.for_session
+          FROM
+          rms_student_attendence AS sd,
+          rms_student_attendence_detail AS sdd
+          WHERE
+          (sd.type=2 OR sdd.attendence_status IN (4,5))
+          AND sd.id = sdd.attendence_id
+          AND sdd.stu_id = $stu_id
+          AND sd.group_id = $group_id
         ");
         return response()->json($q);
     }
     public function getHoliday($type){
-        $q=DB::table('mobile_holiday')->where('type',$type)->get();
+        $q=DB::table('mobile_calendar')->get();
         return response()->json($q);
     }
     public function getCurrentMonth($year,$month,$type){
-        $q=DB::table('mobile_holiday')
+        $q=DB::table('mobile_calendar')
             ->whereYear('date',$year)
             ->whereMonth('date',$month)
-            ->where('type',$type)
             ->get();
         return response()->json($q);
     }
