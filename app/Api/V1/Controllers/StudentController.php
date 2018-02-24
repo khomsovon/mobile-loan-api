@@ -6,7 +6,8 @@ use Illuminate\Http\Request;
 
 class StudentController extends Controller
 {
-    public function getGroup($stu_id){
+    public function getGroup($stu_id,$group_id){
+        $where = $group_id == 0 ? " " : " AND rsu.group_id=$group_id";
         $q=DB::select("SELECT score_t.*,rsu.`stu_enname` FROM (SELECT s.`id`, s.`group_id`,g.`group_code`,title_score,s.for_month,s.note,
    		  (SELECT CONCAT(from_academic,'-',to_academic,'(',generation,')')
 	      FROM rms_tuitionfee AS f WHERE f.id=g.academic_year AND `status`=1 GROUP BY from_academic,to_academic,generation) AS academic_year
@@ -19,11 +20,12 @@ class StudentController extends Controller
   	      s.reportdate FROM `rms_score` AS s, `rms_group` AS g WHERE  g.`id`=s.`group_id` AND s.status = 1 AND s.type_score=1
           ORDER BY g.`id` DESC ,s.for_academic_year,s.for_semester,s.for_month
           ) AS score_t
-          INNER JOIN rms_student AS rsu ON score_t.group_id=rsu.group_id WHERE rsu.`stu_id`=$stu_id GROUP BY group_id"
+          INNER JOIN rms_student AS rsu ON score_t.group_id=rsu.group_id WHERE rsu.`stu_id`=$stu_id $where GROUP BY rsu.group_id"
         );
         return response()->json($q);
     }
-    public function getMasterScore($stu_id){
+    public function getMasterScore($stu_id,$group_id){
+       $where = $group_id == 0 ? " " : " AND s.`group_id`=$group_id";
         $q = DB::select("SELECT s.`id`, s.`group_id`,s.exam_type, g.`group_code`,title_score,s.for_month,s.for_semester,s.note,sd.`student_id`,`g`.`degree` AS degree_id,
         (SELECT CONCAT(from_academic,'-',to_academic,'(',generation,')')
         FROM rms_tuitionfee AS f WHERE f.id=g.academic_year AND `status`=1 GROUP BY from_academic,to_academic,generation) AS academic_year
@@ -39,6 +41,7 @@ class StudentController extends Controller
         WHERE
         s.id= sd.`score_id`
         AND sd.`student_id`=$stu_id
+        $where
         AND g.`id`=s.`group_id` AND s.status = 1 AND s.type_score=1 GROUP BY s.id");
         return response()->json($q);
     }
@@ -440,7 +443,8 @@ class StudentController extends Controller
           ");
         return response()->json($sql);
     }
-    public function getGroupWithTotal($student_id){
+    public function getGroupWithTotal($student_id,$group_id){
+      $where = $group_id == 0 ? "WHERE g.id=gds.`group_id` AND gds.`stu_id`=$student_id" : "WHERE g.id=gds.`group_id` AND gds.`stu_id`=$student_id AND g.id=$group_id";
       $q = DB::select("
       SELECT T1.*,
         (SELECT COUNT(*) FROM (SELECT
@@ -507,7 +511,7 @@ class StudentController extends Controller
                   LIMIT 1) AS `status`,
                   (SELECT COUNT(`stu_id`) FROM `rms_group_detail_student` WHERE `group_id`=`g`.`id` LIMIT 1)AS Num_Student
                   FROM `rms_group` `g`,`rms_group_detail_student` AS gds
-                  WHERE g.id=gds.`group_id` AND gds.`stu_id`=$student_id
+                   $where
           ) AS T1
       ");
       return response()->json($q);
@@ -552,6 +556,7 @@ class StudentController extends Controller
         return response()->json($q);
     }
     public function getGroupbyStudentAtt($student_id,$group_id){
+        $where = $group_id == 0 ? ' ' : ' AND g.id='.$group_id;
         $q = DB::select('SELECT
             `g`.`id`,
             (SELECT teacher_name_kh FROM `rms_teacher` WHERE `rms_teacher`.id=g.teacher_id) AS teacher_name,
@@ -587,7 +592,7 @@ class StudentController extends Controller
             LIMIT 1) AS `status`,
             (SELECT COUNT(`stu_id`) FROM `rms_group_detail_student` WHERE `group_id`=`g`.`id` LIMIT 1)AS Num_Student
             FROM `rms_group` `g`,`rms_group_detail_student` AS gds
-            WHERE g.id=gds.`group_id` AND gds.`stu_id`='.$student_id.' AND g.id='.$group_id);
+            WHERE g.id=gds.`group_id` AND gds.`stu_id`='.$student_id.$where);
           $qr = DB::select("
             SELECT MONTHNAME(a.date_attendence) AS for_month,
             COUNT(attendence_status) AS amount_att,

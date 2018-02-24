@@ -18,7 +18,7 @@ $api->version('v1', function (Router $api) {
         $api->get('getUser/{stu_id}','App\\Api\\V1\\Controllers\\UserController@getUser');
     });
     $api->group(['prefix' => 'v1/student'], function(Router $api) {
-        $api->get('getGroup/{stu_id}','App\\Api\\V1\\Controllers\\StudentController@getGroup');
+        $api->get('getGroup/{stu_id}/{group_id}','App\\Api\\V1\\Controllers\\StudentController@getGroup');
         $api->get('getExam/{stu_id}/{group_id}','App\\Api\\V1\\Controllers\\StudentController@getExam');
         $api->get('getScore/{stu_id}/{group_id}/{exam_id}','App\\Api\\V1\\Controllers\\StudentController@getScore');
         $api->get('config/{key}','App\\Api\\V1\\Controllers\\StudentController@getConfig');
@@ -36,12 +36,12 @@ $api->version('v1', function (Router $api) {
         $api->get('getGroupbyStudent/{student_id}','App\\Api\\V1\\Controllers\\StudentController@getGroupbyStudent');
         $api->get('getGroupbyStudentAtt/{student_id}/{group_id}','App\\Api\\V1\\Controllers\\StudentController@getGroupbyStudentAtt');
         $api->get('getAttByMonth/{group_id}/{student_id}','App\\Api\\V1\\Controllers\\StudentController@getAttByMonth');
-        $api->get('getGroupWithTotal/{student_id}','App\\Api\\V1\\Controllers\\StudentController@getGroupWithTotal');
+        $api->get('getGroupWithTotal/{student_id}/{group_id}','App\\Api\\V1\\Controllers\\StudentController@getGroupWithTotal');
         $api->get('getLabel/{key}','App\\Api\\V1\\Controllers\\StudentController@getLabel');
         $api->get('getSchedule/{group_id}','App\\Api\\V1\\Controllers\\StudentController@getSchedule');
         $api->get('getScheduleDetail/{group_id}/{day_id}','App\\Api\\V1\\Controllers\\StudentController@getScheduleDetail');
         $api->get('getScoreDetail/{score_id}/{degree_id}/{student_id}/{exam_type}/{for_semester}/{group_id}','App\\Api\\V1\\Controllers\\StudentController@getScoreDetail');
-        $api->get('getMasterScore/{student_id}','App\\Api\\V1\\Controllers\\StudentController@getMasterScore');
+        $api->get('getMasterScore/{student_id}/{group_id}','App\\Api\\V1\\Controllers\\StudentController@getMasterScore');
         $api->get('getStatusAttendence/{student_id}/{group}/{month}','App\\Api\\V1\\Controllers\\StudentController@getStatusAttendence');
         $api->get('getAttendanceCountNotification/{student_id}','App\\Api\\V1\\Controllers\\StudentController@getAttendanceCountNotification');
         $api->get('getDiscipline/{student_id}/{group_id}','App\\Api\\V1\\Controllers\\StudentController@getDiscipline');
