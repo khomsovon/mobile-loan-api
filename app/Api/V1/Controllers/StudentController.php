@@ -58,7 +58,7 @@ class StudentController extends Controller
         s.id=sd.score_id
         AND sd.status=1
         AND sd.is_parent=1
-        AND sd.student_id=4
+        AND sd.student_id=$student_id
         AND score_id=$score_id");
         $average=DB::select("SELECT pass_average FROM `rms_dept` WHERE dept_id=$degree_id LIMIT 1");
         DB::statement(DB::raw('SET @rnk=0'));
@@ -623,8 +623,7 @@ class StudentController extends Controller
             AND ad.stu_id = $student_id
             AND a.group_id=$group_id
             AND attendence_status!=1
-            GROUP BY YEAR(a.date_attendence),
-            MONTH(a.date_attendence),attendence_status
+            GROUP BY attendence_status
           ");
         return response()->json(['group'=>$q,'month'=>$qr,'a_total'=>$qrs]);
     }
