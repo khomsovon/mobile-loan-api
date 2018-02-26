@@ -439,7 +439,7 @@ class StudentController extends Controller
             AND sd.id = sdd.attendence_id
             AND sdd.stu_id = $stu_id
             AND sd.group_id = $group
-            AND MONTH(sd.date_attendence) = $month
+            AND MONTH(sd.date_attendence) = $month ORDER BY sdd.id DESC
           ");
         return response()->json($sql);
     }
@@ -516,7 +516,8 @@ class StudentController extends Controller
       ");
       return response()->json($q);
     }
-    public function getGroupbyStudent($student_id){
+    public function getGroupbyStudent($student_id,$group_id){
+        $where = $group_id == 0 ? " " : " AND gds.`group_id`=$group_id";
         $q = DB::select('SELECT
             `g`.`id`,
             (SELECT teacher_name_kh FROM `rms_teacher` WHERE `rms_teacher`.id=g.teacher_id) AS teacher_name,
@@ -552,7 +553,7 @@ class StudentController extends Controller
             LIMIT 1) AS `status`,
             (SELECT COUNT(`stu_id`) FROM `rms_group_detail_student` WHERE `group_id`=`g`.`id` LIMIT 1)AS Num_Student
             FROM `rms_group` `g`,`rms_group_detail_student` AS gds
-            WHERE g.id=gds.`group_id` AND gds.`stu_id`='.$student_id);
+            WHERE g.id=gds.`group_id` AND gds.`stu_id`='.$student_id .$where);
         return response()->json($q);
     }
     public function getGroupbyStudentAtt($student_id,$group_id){
@@ -607,7 +608,7 @@ class StudentController extends Controller
             AND ad.stu_id = $student_id
             AND a.group_id=$group_id
             GROUP BY YEAR(a.date_attendence),
-            MONTH(a.date_attendence) ORDER BY MONTH(a.date_attendence)
+            MONTH(a.date_attendence) ORDER BY MONTH(a.date_attendence) DESC
           ");
           $qrs = DB::select("
             SELECT MONTHNAME(a.date_attendence) AS for_month,

@@ -33,7 +33,7 @@ $api->version('v1', function (Router $api) {
         $api->get('getHoliday/{type}','App\\Api\\V1\\Controllers\\StudentController@getHoliday');
         $api->get('getPaymentInvoice/{student_id}','App\\Api\\V1\\Controllers\\StudentController@getPaymentInvoice');
         $api->get('getPaymentDetail/{student_id}/{payment_id}','App\\Api\\V1\\Controllers\\StudentController@getPaymentDetail');
-        $api->get('getGroupbyStudent/{student_id}','App\\Api\\V1\\Controllers\\StudentController@getGroupbyStudent');
+        $api->get('getGroupbyStudent/{student_id}/{group_id}','App\\Api\\V1\\Controllers\\StudentController@getGroupbyStudent');
         $api->get('getGroupbyStudentAtt/{student_id}/{group_id}','App\\Api\\V1\\Controllers\\StudentController@getGroupbyStudentAtt');
         $api->get('getAttByMonth/{group_id}/{student_id}','App\\Api\\V1\\Controllers\\StudentController@getAttByMonth');
         $api->get('getGroupWithTotal/{student_id}/{group_id}','App\\Api\\V1\\Controllers\\StudentController@getGroupWithTotal');
