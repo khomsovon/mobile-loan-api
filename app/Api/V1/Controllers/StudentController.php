@@ -6,6 +6,12 @@ use Illuminate\Http\Request;
 
 class StudentController extends Controller
 {
+
+    public function getAttNote(){
+      $q = DB::table("mobile_attendencenote")->get();
+      return response()->json($q);
+    }
+
     public function getGroup($stu_id,$group_id){
         $where = $group_id == 0 ? " " : " AND rsu.group_id=$group_id";
         $q=DB::select("SELECT score_t.*,rsu.`stu_enname` FROM (SELECT s.`id`, s.`group_id`,g.`group_code`,title_score,s.for_month,s.note,

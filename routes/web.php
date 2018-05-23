@@ -17,6 +17,13 @@ $api->version('v1', function (Router $api) {
         $api->get('view','App\\Api\\V1\\Controllers\\UserController@getAuthenticatedUser');
         $api->get('getUser/{stu_id}','App\\Api\\V1\\Controllers\\UserController@getUser');
     });
+    $api->group(['prefix' => 'v1/loan'], function(Router $api) {
+      $api->get('getDisbursement','App\\Api\\V1\\Controllers\\LoanController@getDisbursement');
+      $api->get('getPayment','App\\Api\\V1\\Controllers\\LoanController@getPayment');
+      $api->get('getCollection','App\\Api\\V1\\Controllers\\LoanController@getCollection');
+      $api->get('getLoanRemaining','App\\Api\\V1\\Controllers\\LoanController@getLoanRemaining');
+      $api->get('getLoanStock','App\\Api\\V1\\Controllers\\LoanController@getLoanStock');
+    });
     $api->group(['prefix' => 'v1/student'], function(Router $api) {
         $api->get('getGroup/{stu_id}/{group_id}','App\\Api\\V1\\Controllers\\StudentController@getGroup');
         $api->get('getExam/{stu_id}/{group_id}','App\\Api\\V1\\Controllers\\StudentController@getExam');
@@ -48,6 +55,7 @@ $api->version('v1', function (Router $api) {
         $api->get('getCurrentMonth/{year}/{month}/{type}','App\\Api\\V1\\Controllers\\StudentController@getCurrentMonth');
         $api->post('postToken','App\\Api\\V1\\Controllers\\StudentController@postToken');
         $api->post('postMessage','App\\Api\\V1\\Controllers\\StudentController@postMessage');
+        $api->get('attendance-note','App\\Api\\V1\\Controllers\\StudentController@getAttNote');
         $api->get('getMessage/{limit}/{offset}/{stu_id}','App\\Api\\V1\\Controllers\\StudentController@getMessage');
     });
     $api->group(['middleware' => 'jwt.auth'], function(Router $api) {
