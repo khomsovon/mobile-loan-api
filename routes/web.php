@@ -23,6 +23,9 @@ $api->version('v1', function (Router $api) {
       $api->get('getCollection','App\\Api\\V1\\Controllers\\LoanController@getCollection');
       $api->get('getLoanRemaining','App\\Api\\V1\\Controllers\\LoanController@getLoanRemaining');
       $api->get('getLoanStock','App\\Api\\V1\\Controllers\\LoanController@getLoanStock');
+      $api->get('getBranch','App\\Api\\V1\\Controllers\\LoanController@getBranch');
+      $api->get('getCategory','App\\Api\\V1\\Controllers\\LoanController@getCategory');
+
     });
     $api->group(['prefix' => 'v1/student'], function(Router $api) {
         $api->get('getGroup/{stu_id}/{group_id}','App\\Api\\V1\\Controllers\\StudentController@getGroup');
