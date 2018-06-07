@@ -30,7 +30,6 @@ class LoanController extends Controller
     $q = DB::select("SELECT br_id AS id,branch_namekh as name FROM ln_branch WHERE branch_namekh !='' AND status=1");
     return response()->json($q)
   }
-
   public function getCategory(){
     $q = DB::select("SELECT b.id,b.name FROM ln_ins_category AS b WHERE b.status=1 AND b.name!='' ORDER BY b.name ASC");
     return response()->json($q);
