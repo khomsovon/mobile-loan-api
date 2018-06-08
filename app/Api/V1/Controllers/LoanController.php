@@ -26,6 +26,40 @@ class LoanController extends Controller
     return response()->json($q);
   }
 
+  public function searchDisbursement(Request $req){
+    $branch_id = $req->branch;
+    $category_id = $req->category;
+    $start_date = $req->start_date;
+    $end_date = $req->end_date;
+    $where = "";
+    if(!empty($branch_id)){
+        $where .=" AND s.branch_id=".$branch_id;
+    }
+    if(!empty($category_id)){
+      $where .=" AND p.cate_id=".$category_id;
+    }
+    $from_date =(empty($start_date))? '1' : " s.date_sold >= '".$start_date." 00:00:00'";
+    $to_date = (empty($end_date))? '1' : " s.date_sold <= '".$end_date." 23:59:59'";
+    $where.= " AND ".$from_date." AND ".$to_date;
+    $q = DB::select("
+    SELECT
+      (SELECT name_kh FROM `ln_ins_client` WHERE client_id = s.customer_id LIMIT 1) AS client_name_kh,
+      (SELECT b.branch_namekh FROM `ln_branch` AS b WHERE b.br_id = s.branch_id LIMIT 1) AS branch_namekh,
+      p.item_name,
+      s.date_sold,
+      s.balance,
+      s.paid,
+      s.selling_price
+    FROM
+      `ln_ins_sales_install` AS s,
+      `ln_ins_product` AS p
+    WHERE
+      s.product_id = p.id
+      AND s.`status` =1
+    ".$where);
+    return response()->json($q);
+  }
+
   public function getBranch(){
     $q = DB::select("SELECT br_id AS id,branch_namekh as name FROM ln_branch WHERE branch_namekh !='' AND status=1");
     return response()->json($q);
