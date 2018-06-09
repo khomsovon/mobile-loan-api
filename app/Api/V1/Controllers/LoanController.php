@@ -82,7 +82,7 @@ class LoanController extends Controller
 
       `c`.`phone` AS phone_number,
 
-      d.`date_payment` AS date_payment,
+      d.`date_payment`,
       d.`principle_after` AS principle_after,
       `d`.`total_interest_after` AS `total_interest_after`,
       `d`.`total_payment`        AS `total_payment`,
@@ -98,6 +98,48 @@ class LoanController extends Controller
       AND l.`status` = 1
       AND d.`status` = 1
       AND d.`is_completed` =0
+    ".$where);
+    return response()->json($q);
+  }
+
+  public function searchRemaining(Request $req){
+    $branch_id = $req->branch;
+    $category_id = $req->category;
+    $start_date = $req->start_date;
+    $end_date = $req->end_date;
+    $where = "";
+    if(!empty($branch_id)){
+        $where .=" AND s.branch_id=".$branch_id;
+    }
+    if(!empty($category_id)){
+      $where .=" AND s.cate_id=".$category_id;
+    }
+    $from_date =(empty($start_date))? '1' : " s.date_sold >= '".$start_date." 00:00:00'";
+    $to_date = (empty($end_date))? '1' : " s.date_sold <= '".$end_date." 23:59:59'";
+    $where.= " AND ".$from_date." AND ".$to_date;
+    $q = DB::select("
+      SELECT
+          c.name_kh AS `client_kh`,
+          (SELECT inp.item_name FROM `ln_ins_product` AS inp WHERE inp.id = s.`product_id` LIMIT 1) AS item_name,
+          s.*,
+          (SELECT  `ln_ins_receipt_money`.`paid_times` FROM `ln_ins_receipt_money` WHERE ((`ln_ins_receipt_money`.`status` = 1) AND (`s`.`id` = `ln_ins_receipt_money`.`loan_id`))
+          ORDER BY `ln_ins_receipt_money`.`paid_times` DESC
+          LIMIT 1) AS `installment_amount`,
+          (SELECT
+          SUM(`ln_ins_receipt_money`.`principal_paid`)
+          FROM `ln_ins_receipt_money`
+          WHERE ((`ln_ins_receipt_money`.`status` = 1)
+          AND (`s`.`id` = `ln_ins_receipt_money`.`loan_id`))) AS `total_principaid`,
+
+          (SELECT
+          SUM(`ln_ins_receipt_money`.`total_paymentpaid`)
+          FROM `ln_ins_receipt_money`
+          WHERE ((`ln_ins_receipt_money`.`status` = 1)
+          AND (`s`.`id` = `ln_ins_receipt_money`.`loan_id`))) AS `total_paymentpaid`
+      FROM
+      `ln_ins_sales_install` AS s,
+      `ln_ins_client` AS c
+      WHERE c.`client_id` = s.`customer_id` AND s.status=1
     ".$where);
     return response()->json($q);
   }

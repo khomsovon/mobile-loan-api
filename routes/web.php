@@ -27,6 +27,7 @@ $api->version('v1', function (Router $api) {
       $api->get('getCategory','App\\Api\\V1\\Controllers\\LoanController@getCategory');
       $api->post('searchDisbursement','App\\Api\\V1\\Controllers\\LoanController@searchDisbursement');
       $api->post('searchPayment','App\\Api\\V1\\Controllers\\LoanController@searchPayment');
+      $api->post('searchRemaining','App\\Api\\V1\\Controllers\\LoanController@searchRemaining');
     });
     $api->group(['prefix' => 'v1/student'], function(Router $api) {
         $api->get('getGroup/{stu_id}/{group_id}','App\\Api\\V1\\Controllers\\StudentController@getGroup');
