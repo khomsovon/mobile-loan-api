@@ -60,6 +60,48 @@ class LoanController extends Controller
     return response()->json($q);
   }
 
+  public function searchPayment(Request $req){
+    $branch_id = $req->branch;
+    $category_id = $req->category;
+    $start_date = $req->start_date;
+    $end_date = $req->end_date;
+    $where = "";
+    if(!empty($branch_id)){
+        $where .=" AND l.branch_id=".$branch_id;
+    }
+    if(!empty($category_id)){
+      $where .=" AND l.cate_id=".$category_id;
+    }
+    $from_date =(empty($start_date))? '1' : " d.`date_payment` >= '".$start_date." 00:00:00'";
+    $to_date = (empty($end_date))? '1' : " d.`date_payment` <= '".$end_date." 23:59:59'";
+    $where.= " AND ".$from_date." AND ".$to_date;
+    $q = DB::select("
+      SELECT
+      (SELECT   `lb`.`branch_namekh` FROM `ln_branch` `lb`  WHERE (`lb`.`br_id` = l.`branch_id`)  LIMIT 1) AS `branch_namekh`,
+      `c`.`name_kh` AS `name_kh`,
+
+      `c`.`phone` AS phone_number,
+
+      d.`date_payment` AS date_payment,
+      d.`principle_after` AS principle_after,
+      `d`.`total_interest_after` AS `total_interest_after`,
+      `d`.`total_payment`        AS `total_payment`,
+      `d`.`installment_amount`   AS `times`,
+       (SELECT inp.item_name FROM `ln_ins_product` AS inp WHERE inp.id = l.`product_id` LIMIT 1) AS item_name
+      FROM
+      `ln_ins_sales_install` AS l,
+      `ln_ins_sales_installdetail` d,
+      `ln_ins_client` AS c
+      WHERE l.`id` = d.`sale_id`
+      AND c.`client_id` = l.`customer_id`
+      AND l.`is_completed` = 0
+      AND l.`status` = 1
+      AND d.`status` = 1
+      AND d.`is_completed` =0
+    ".$where);
+    return response()->json($q);
+  }
+
   public function getBranch(){
     $q = DB::select("SELECT br_id AS id,branch_namekh as name FROM ln_branch WHERE branch_namekh !='' AND status=1");
     return response()->json($q);
