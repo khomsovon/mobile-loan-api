@@ -26,6 +26,34 @@ class LoanController extends Controller
     return response()->json($q);
   }
 
+  public function getCountPayment(){
+    $q = DB::select("
+      SELECT
+      (SELECT   `lb`.`branch_namekh` FROM `ln_branch` `lb`  WHERE (`lb`.`br_id` = l.`branch_id`)  LIMIT 1) AS `branch_namekh`,
+      `c`.`name_kh` AS `name_kh`,
+
+      `c`.`phone` AS phone_number,
+
+      d.`date_payment` AS date_payment,
+      d.`principle_after` AS principle_after,
+      `d`.`total_interest_after` AS `total_interest_after`,
+      `d`.`total_payment`        AS `total_payment`,
+      `d`.`installment_amount`   AS `times`,
+       (SELECT inp.item_name FROM `ln_ins_product` AS inp WHERE inp.id = l.`product_id` LIMIT 1) AS item_name
+      FROM
+      `ln_ins_sales_install` AS l,
+      `ln_ins_sales_installdetail` d,
+      `ln_ins_client` AS c
+      WHERE l.`id` = d.`sale_id`
+      AND c.`client_id` = l.`customer_id`
+      AND l.`is_completed` = 0
+      AND l.`status` = 1
+      AND d.`status` = 1
+      AND d.`is_completed` =0
+    ");
+    return response()->json($q);
+  }
+
   public function searchDisbursement(Request $req){
     $branch_id = $req->branch;
     $category_id = $req->category;
@@ -118,7 +146,7 @@ class LoanController extends Controller
     $to_date = (empty($end_date))? '1' : " s.date_sold <= '".$end_date." 23:59:59'";
     $where.= " AND ".$from_date." AND ".$to_date;
     $q = DB::select("
-      SELECT
+        SELECT T.*,((T.selling_price - T.paid) - (T.total_principaid - T.paid)) AS total_remaining FROM (SELECT
           c.name_kh AS `client_kh`,
           (SELECT inp.item_name FROM `ln_ins_product` AS inp WHERE inp.id = s.`product_id` LIMIT 1) AS item_name,
           s.*,
@@ -139,8 +167,9 @@ class LoanController extends Controller
       FROM
       `ln_ins_sales_install` AS s,
       `ln_ins_client` AS c
-      WHERE c.`client_id` = s.`customer_id` AND s.status=1
-    ".$where);
+      WHERE c.`client_id` = s.`customer_id` AND s.status=1 $where
+		) AS T
+    ");
     return response()->json($q);
   }
 
@@ -215,7 +244,11 @@ class LoanController extends Controller
     return response()->json($q);
   }
 
-  public function getPayment(){
+  public function getPayment($start_date, $end_date){
+    $where = "";
+    $from_date =(empty($start_date))? '1' : " d.date_payment >= '".$start_date." 00:00:00'";
+    $to_date = (empty($end_date))? '1' : " d.date_payment <= '".$end_date." 23:59:59'";
+    $where.= " AND ".$from_date." AND ".$to_date;
     $q = DB::select("
       SELECT
       (SELECT   `lb`.`branch_namekh` FROM `ln_branch` `lb`  WHERE (`lb`.`br_id` = l.`branch_id`)  LIMIT 1) AS `branch_namekh`,
@@ -239,8 +272,24 @@ class LoanController extends Controller
       AND l.`status` = 1
       AND d.`status` = 1
       AND d.`is_completed` =0
+      $where
     ");
     return response()->json($q);
+  }
+
+  public function postToken(Request $req){
+      $token = $req->token;
+      $device_id = $req->device_id;
+      $device_type = $req->device_type;
+      $device_model = $req->device_model;
+
+      $q=DB::table('mobile_token')->where('device_id',$device_id)->get();
+      if(count($q) == 0){
+          DB::table('mobile_token')->insert(['token'=>$token, 'device_id'=>$device_id, 'device_model'=> $device_model, 'device_type'=>$device_type, 'create_at'=>date('Y-m-d')]);
+      }else{
+          DB::table('mobile_token')->where('device_id',$device_id)->update(['token'=>$token,'create_at'=>date('Y-m-d')]);
+      }
+      return response()->json(['status'=>'ok']);
   }
 
   public function getCollection(){
@@ -273,7 +322,7 @@ class LoanController extends Controller
 
   public function getLoanRemaining(){
     $q = DB::select("
-      SELECT
+        SELECT T.*,((T.selling_price - T.paid) - (T.total_principaid - T.paid)) AS total_remaining FROM (SELECT
           c.name_kh AS `client_kh`,
           (SELECT inp.item_name FROM `ln_ins_product` AS inp WHERE inp.id = s.`product_id` LIMIT 1) AS item_name,
           s.*,
@@ -295,6 +344,7 @@ class LoanController extends Controller
       `ln_ins_sales_install` AS s,
       `ln_ins_client` AS c
       WHERE c.`client_id` = s.`customer_id` AND s.status=1
+		) AS T
     ");
     return response()->json($q);
   }
