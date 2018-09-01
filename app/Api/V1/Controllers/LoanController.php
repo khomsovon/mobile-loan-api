@@ -21,7 +21,7 @@ class LoanController extends Controller
       `ln_ins_product` AS p
     WHERE
       s.product_id = p.id
-      AND s.`status` =1
+      AND s.`status` =1 ORDER BY s.id DESC
     ");
     return response()->json($q);
   }
@@ -91,7 +91,6 @@ class LoanController extends Controller
   public function searchPayment(Request $req){
     $branch_id = $req->branch;
     $category_id = $req->category;
-    $start_date = $req->start_date;
     $end_date = $req->end_date;
     $where = "";
     if(!empty($branch_id)){
@@ -100,9 +99,9 @@ class LoanController extends Controller
     if(!empty($category_id)){
       $where .=" AND l.cate_id=".$category_id;
     }
-    $from_date =(empty($start_date))? '1' : " d.`date_payment` >= '".$start_date." 00:00:00'";
+    $end_date = date("Y-m-d", strtotime($end_date."+2 day"));
     $to_date = (empty($end_date))? '1' : " d.`date_payment` <= '".$end_date." 23:59:59'";
-    $where.= " AND ".$from_date." AND ".$to_date;
+    $where.= " AND ".$to_date;
     $q = DB::select("
       SELECT
       (SELECT   `lb`.`branch_namekh` FROM `ln_branch` `lb`  WHERE (`lb`.`br_id` = l.`branch_id`)  LIMIT 1) AS `branch_namekh`,
@@ -167,7 +166,7 @@ class LoanController extends Controller
       FROM
       `ln_ins_sales_install` AS s,
       `ln_ins_client` AS c
-      WHERE c.`client_id` = s.`customer_id` AND s.status=1 $where
+      WHERE c.`client_id` = s.`customer_id` AND s.status=1 AND s.selling_type=2 $where
 		) AS T
     ");
     return response()->json($q);
@@ -207,8 +206,22 @@ class LoanController extends Controller
       WHERE ((`crm`.`status` = 1)
       AND (`crm`.`id` = `d`.`receipt_id`)
       AND (`crm`.`status` = 1))
-    ".$where);
-    return response()->json($q);
+    ".$where." ORDER BY crm.id DESC");
+
+     $from_date =(empty($start_date))? '1': " g.dateSold >= '".$start_date." 00:00:00'";
+     $to_date = (empty($end_date))? '1': " g.dateSold <= '".$end_date." 23:59:59'";
+
+    $where_other = " AND ".$from_date." AND ".$to_date;
+    $q_other = DB::select("
+      SELECT g.*,
+      (SELECT b.branch_namekh FROM ln_branch AS b WHERE b.br_id = g.branch_id LIMIT 1) branchNamekh,
+      (SELECT c.name_kh FROM ln_ins_client AS c WHERE c.client_id = g.customerId LIMIT 1) AS name_kh,
+      (SELECT c.client_number FROM ln_ins_client AS c WHERE c.client_id = g.customerId LIMIT 1) AS client_number
+       FROM ln_ins_generalsale AS g
+       WHERE 1
+      ".$where_other);
+
+    return response()->json(['collection'=>$q,'other_collection'=>$q_other]);
   }
 
   public function searchStock(Request $req){
@@ -244,11 +257,11 @@ class LoanController extends Controller
     return response()->json($q);
   }
 
-  public function getPayment($start_date, $end_date){
+  public function getPayment($end_date){
     $where = "";
-    $from_date =(empty($start_date))? '1' : " d.date_payment >= '".$start_date." 00:00:00'";
+    $end_date = date("Y-m-d", strtotime($end_date."+2 day"));
     $to_date = (empty($end_date))? '1' : " d.date_payment <= '".$end_date." 23:59:59'";
-    $where.= " AND ".$from_date." AND ".$to_date;
+    $where.= " AND ".$to_date;
     $q = DB::select("
       SELECT
       (SELECT   `lb`.`branch_namekh` FROM `ln_branch` `lb`  WHERE (`lb`.`br_id` = l.`branch_id`)  LIMIT 1) AS `branch_namekh`,
@@ -343,7 +356,7 @@ class LoanController extends Controller
       FROM
       `ln_ins_sales_install` AS s,
       `ln_ins_client` AS c
-      WHERE c.`client_id` = s.`customer_id` AND s.status=1
+      WHERE c.`client_id` = s.`customer_id` AND s.status=1 AND s.selling_type=2
 		) AS T
     ");
     return response()->json($q);

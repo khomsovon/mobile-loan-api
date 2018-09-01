@@ -19,7 +19,7 @@ $api->version('v1', function (Router $api) {
     });
     $api->group(['prefix' => 'v1/loan'], function(Router $api) {
       $api->get('getDisbursement','App\\Api\\V1\\Controllers\\LoanController@getDisbursement');
-      $api->get('getPayment/{start_date}/{end_date}','App\\Api\\V1\\Controllers\\LoanController@getPayment');
+      $api->get('getPayment/{end_date}','App\\Api\\V1\\Controllers\\LoanController@getPayment');
       $api->get('getCountPayment','App\\Api\\V1\\Controllers\\LoanController@getCountPayment');
       $api->post('postToken','App\\Api\\V1\\Controllers\\LoanController@postToken');
       $api->get('getCollection','App\\Api\\V1\\Controllers\\LoanController@getCollection');
