@@ -203,9 +203,8 @@ class LoanController extends Controller
       `crm`.`paid_times`           AS `paid_times`
       FROM (`ln_ins_receipt_money` `crm`
       JOIN `ln_ins_receipt_money_detail` `d`)
-      WHERE ((`crm`.`status` = 1)
+      WHERE (`crm`.`status` = 1)
       AND (`crm`.`id` = `d`.`receipt_id`)
-      AND (`crm`.`status` = 1))
     ".$where." ORDER BY crm.id DESC");
 
      $from_date =(empty($start_date))? '1': " g.dateSold >= '".$start_date." 00:00:00'";
