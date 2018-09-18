@@ -184,29 +184,49 @@ class LoanController extends Controller
     $to_date = (empty($end_date)) ? '1' : " `crm`.`date_input` <= '".$end_date." 23:59:59'";
     $where.= " AND ".$from_date." AND ".$to_date;
     $q = DB::select("
-      SELECT
-      (SELECT
-      `ln_branch`.`branch_namekh`
-      FROM `ln_branch` WHERE (`ln_branch`.`br_id` = `crm`.`branch_id`) LIMIT 1) AS `branch_name`,
-      (SELECT `l`.`sale_no` FROM `ln_ins_sales_install` `l` WHERE (`l`.`id` = `crm`.`loan_id`) LIMIT 1) AS `loan_number`,
-      (SELECT `c`.`name_kh` FROM `ln_ins_client` `c` WHERE (`c`.`client_id` = `crm`.`client_id`) LIMIT 1) AS `client_name`,
-      (SELECT `u`.`first_name` FROM `rms_users` `u` WHERE (`u`.`id` = `crm`.`user_id`)) AS `user_name`,
-      `crm`.`loan_id`		     AS loan_id,
-      `crm`.`receipt_no`           AS `receipt_no`,
-      `crm`.`branch_id`            AS `branch_id`,
-      `crm`.`date_pay`             AS `date_pay`,
-      `crm`.`date_payment`         AS `date_payment`,
-      `crm`.`date_input`           AS `date_input`,
-      `crm`.`user_id`              AS `user_id`,
-      `crm`.`payment_option`       AS `payment_option`,
-      `crm`.`total_paymentpaid`    AS `total_paymentpaid`,
-      `crm`.`paid_times`           AS `paid_times`
-      FROM (`ln_ins_receipt_money` `crm`
-      JOIN `ln_ins_receipt_money_detail` `d`)
-      WHERE ((`crm`.`status` = 1)
-      AND (`crm`.`id` = `d`.`receipt_id`)
-      AND (`crm`.`status` = 1)
-    ".$where.") ORDER BY crm.id DESC");
+     SELECT
+       (SELECT
+       ln_branch.branch_namekh
+       FROM ln_branch WHERE (ln_branch.br_id = crm.branch_id) LIMIT 1) AS branch_name,
+       (SELECT l.sale_no FROM ln_ins_sales_install l WHERE (l.id = crm.loan_id) LIMIT 1) AS loan_number,
+       (SELECT c.name_kh FROM ln_ins_client c WHERE (c.client_id = crm.client_id) LIMIT 1) AS client_name,
+       (SELECT  c.client_number FROM ln_ins_client c WHERE (c.client_id = crm.client_id) LIMIT 1) AS client_number,
+       (SELECT u.first_name FROM rms_users u WHERE (u.id = crm.user_id)) AS user_name,
+
+       crm.id                   AS id,
+       crm.loan_id           AS  loan_id,
+       crm.receipt_no           AS receipt_no,
+       crm.branch_id            AS branch_id,
+       crm.date_pay             AS date_pay,
+       crm.date_payment         AS date_payment,
+       crm.date_input           AS date_input,
+       crm.note                 AS note,
+       crm.user_id              AS user_id,
+       crm.status               AS status,
+       crm.payment_option       AS payment_option,
+
+       crm.is_payoff            AS is_payoff,
+       crm.total_payment        AS total_payment,
+       crm.principal_amount     AS principal_amount,
+       crm.interest_amount      AS interest_amount,
+       crm.principal_paid       AS principal_paid,
+       crm.interest_paid        AS interest_paid,
+
+       crm.penalize_paid        AS penalize_paid,
+       crm.total_paymentpaid    AS total_paymentpaid,
+       crm.recieve_amount       AS amount_recieve,
+       crm.return_amount        AS return_amount,
+       crm.penalize_amount      AS penelize,
+
+       crm.client_id            AS client_id,
+       crm.paid_times           AS paid_times,
+       (SELECT p.item_name FROM ln_ins_product AS p,ln_ins_sales_install AS s
+      WHERE s.product_id=p.id AND s.id=crm.loan_id LIMIT 1) AS item_name
+       FROM (ln_ins_receipt_money crm
+       JOIN ln_ins_receipt_money_detail d)
+       WHERE ((crm.status = 1)
+       AND (crm.id = d.receipt_id)
+       AND (crm.status = 1) ".$where.") GROUP BY crm.id ORDER BY crm.id DESC");
 
      $from_date =(empty($start_date))? '1': " g.dateSold >= '".$start_date." 00:00:00'";
      $to_date = (empty($end_date))? '1': " g.dateSold <= '".$end_date." 23:59:59'";
