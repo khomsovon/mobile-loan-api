@@ -13,12 +13,11 @@ class LoginController extends Controller
 {
     public function login(LoginRequest $request, JWTAuth $JWTAuth)
     {
-        $credentials = $request->only(['stu_code', 'password']);
+        $credentials = $request->only(['user_name', 'password']);
         $data = array();
         try{
             $token = $JWTAuth->attempt($credentials);
             if(!$token) {
-                //throw new AccessDeniedHttpException();
                 $data=[
                     'status' => false,
                     'token' => $token,
@@ -28,7 +27,7 @@ class LoginController extends Controller
                 $data=[
                     'status' => 'ok',
                     'token' => $token,
-                    'stu_id' =>$JWTAuth->toUser($token)->stu_id
+                    'user_id' =>$JWTAuth->toUser($token)->id
                 ];
             }
         }catch(JWTException $e){

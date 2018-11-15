@@ -13,7 +13,7 @@ return [
 
     'login' => [
         'validation_rules' => [
-            'stu_code' => 'required',
+            'user_name' => 'required',
             'password' => 'required'
         ]
     ],
